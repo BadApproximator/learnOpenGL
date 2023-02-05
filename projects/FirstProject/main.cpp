@@ -12,6 +12,20 @@
 #include <iostream>
 #include "Shader.h"
 
+struct ModelTransform
+{
+    glm::vec3 position;
+    glm::vec3 rotation; // Euler's angles
+    glm::vec3 scale;
+
+    void setUniformScale(float s)
+    {
+        scale.x = s;
+        scale.y = s;
+        scale.z = s;
+    }
+};
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
@@ -34,7 +48,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* create window */
-    GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(800, 800, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -58,14 +72,31 @@ int main()
     // ------------------------------------------------------------------
     const int verts = 6;
     GLfloat vertices[verts * (3 + 3)] = {
-         0.0f,  0.75f,  0.0f,     1.0f, 0.0f, 1.0f,
+         0.0f,  0.5f,  0.0f,     1.0f, 0.0f, 1.0f,
          0.5f,  0.0f,   0.0f,     1.0f, 0.0f, 0.0f,
          -0.5f, 0.0f,   0.0f,     0.0f, 1.0f, 0.0f,
-         0.0f,  -0.75f, 0.0f,     0.0f, 0.0f, 1.0f,
+         0.0f,  -0.5f, 0.0f,     0.0f, 0.0f, 1.0f,
     };
     GLuint indices[] = {
         0, 1, 2,
         1, 2, 3,
+    };
+
+    ModelTransform polygonTrans1 = {
+        glm::vec3(0.f, 0.f, 0.f),
+        glm::vec3(0.f, 0.f, 0.f),
+        glm::vec3(1.f, 1.f, 1.f),
+    };
+    
+    ModelTransform polygonTrans2 = {
+        glm::vec3(0.f, 0.f, 0.f),
+        glm::vec3(0.f, 0.f, 0.f),
+        glm::vec3(1.f, 1.f, 1.f),
+    };
+    ModelTransform polygonTrans3 = {
+        glm::vec3(0.f, 0.f, 0.f),
+        glm::vec3(0.f, 0.f, 0.f),
+        glm::vec3(1.f, 1.f, 1.f),
     };
 
 #pragma region BUFFERS INITIALIZATION
@@ -108,15 +139,27 @@ int main()
 
     Shader* polygonShader = new Shader("shaders/basic.vert", "shaders/basic.frag");
 
-    glm::mat4 model = glm::mat4(1.0f);
     // Для режима wireframe (только ребра)
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
+    polygonTrans1.position.x = 0.5f;
+    polygonTrans1.setUniformScale(0.5f);
+
     /* simple render loop */
     while (!glfwWindowShouldClose(window))
     {
         // Process some keys
         processInput(window);
+
+        polygonTrans1.rotation.z = glfwGetTime() * 60.0;
+        polygonTrans1.position.x = 0.8f * cos(glfwGetTime());
+        polygonTrans1.position.y = 0.8f * sin(glfwGetTime());
+        polygonTrans1.setUniformScale(0.7);
+
+        polygonTrans2.rotation.z = glfwGetTime() * 30.0;
+        polygonTrans2.position.x = 0.8f * cos(glfwGetTime() + 3.14f);
+        polygonTrans2.position.y = 0.8f * sin(glfwGetTime() + 3.14f);
+        polygonTrans2.setUniformScale(1.2f);
 
         // render
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -125,12 +168,44 @@ int main()
         // draw our first triangle
         polygonShader->use();
 
+        // 1
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, polygonTrans1.position);
+        model = glm::rotate(model, glm::radians(polygonTrans1.rotation.x), glm::vec3(1.f, 0.f, 0.f));
+        model = glm::rotate(model, glm::radians(polygonTrans1.rotation.y), glm::vec3(0.f, 1.f, 0.f));
+        model = glm::rotate(model, glm::radians(polygonTrans1.rotation.z), glm::vec3(0.f, 0.f, 1.f));
+        model = glm::scale(model, polygonTrans1.scale);
+
         polygonShader->setMatrix4f("model", model);
 
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        //glDrawArrays(GL_TRIANGLES, 0, 6);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        // glBindVertexArray(0); // no need to unbind it every time 
+
+        // 2
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, polygonTrans2.position);
+        model = glm::rotate(model, glm::radians(polygonTrans2.rotation.x), glm::vec3(1.f, 0.f, 0.f));
+        model = glm::rotate(model, glm::radians(polygonTrans2.rotation.y), glm::vec3(0.f, 1.f, 0.f));
+        model = glm::rotate(model, glm::radians(polygonTrans2.rotation.z), glm::vec3(0.f, 0.f, 1.f));
+        model = glm::scale(model, polygonTrans2.scale);
+
+        polygonShader->setMatrix4f("model", model);
+
+        //glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        // 3
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, polygonTrans3.position);
+        model = glm::rotate(model, glm::radians(polygonTrans3.rotation.x), glm::vec3(1.f, 0.f, 0.f));
+        model = glm::rotate(model, glm::radians(polygonTrans3.rotation.y), glm::vec3(0.f, 1.f, 0.f));
+        model = glm::rotate(model, glm::radians(polygonTrans3.rotation.z), glm::vec3(0.f, 0.f, 1.f));
+        model = glm::scale(model, polygonTrans3.scale);
+
+        polygonShader->setMatrix4f("model", model);
+
+        //glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         /* see info about Double Buffer concept */
         glfwSwapBuffers(window);
