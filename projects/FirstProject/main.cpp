@@ -66,20 +66,36 @@ int main()
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
+
+    glEnable(GL_DEPTH_TEST); // проверка глубины
 #pragma endregion
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
-    const int verts = 6;
-    GLfloat vertices[verts * (3 + 3)] = {
-         0.0f,  0.5f,  0.0f,     1.0f, 0.0f, 1.0f,
-         0.5f,  0.0f,   0.0f,     1.0f, 0.0f, 0.0f,
-         -0.5f, 0.0f,   0.0f,     0.0f, 1.0f, 0.0f,
-         0.0f,  -0.5f, 0.0f,     0.0f, 0.0f, 1.0f,
+    const int verts = 8;
+    GLfloat cube[verts * (3 + 3)] = {
+         -1.0f,  1.0f,   -1.0f,     1.0f, 0.0f, 0.0f,
+         1.0f,   1.0f,   -1.0f,     0.5f, 0.5f, 0.0f,
+         1.0f,   1.0f,   1.0f,     0.0f, 1.0f, 0.0f,
+         -1.0f,  1.0f,   1.0f,     0.0f, 0.5f, 0.5f,
+         -1.0f,  -1.0f,  -1.0f,     0.0f, 0.0f, 1.0f,
+         1.0f,   -1.0f,  -1.0f,     0.5f, 0.0f, 0.5f,
+         1.0f,   -1.0f,  1.0f,     0.5f, 0.5f, 0.5f,
+         -1.0f,  -1.0f,  1.0f,     1.0f, 1.0f, 1.0f,
     };
     GLuint indices[] = {
-        0, 1, 2,
+        0, 1, 3,
         1, 2, 3,
+        0, 4, 1,
+        1, 4, 5,
+        0, 3, 7,
+        0, 7, 4,
+        1, 6, 2,
+        1, 5, 6,
+        2, 7, 3,
+        2, 6, 7,
+        4, 7, 5,
+        5, 7, 6,
     };
 
     ModelTransform polygonTrans1 = {
@@ -113,12 +129,12 @@ int main()
     */ 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * verts * (3+3), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * verts * (3+3), cube, GL_STATIC_DRAW);
     // GL_STATIC_DRAW
     // GL_STREAM_DRAW (very rare)
     // GL_DYNAMIC_DRAW
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * 6, indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * 36, indices, GL_STATIC_DRAW);
 
     // position attribute   
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
@@ -152,18 +168,24 @@ int main()
         processInput(window);
 
         polygonTrans1.rotation.z = glfwGetTime() * 60.0;
+        polygonTrans1.rotation.x = glfwGetTime() * 45.0;
         polygonTrans1.position.x = 0.8f * cos(glfwGetTime());
         polygonTrans1.position.y = 0.8f * sin(glfwGetTime());
-        polygonTrans1.setUniformScale(0.7);
+        polygonTrans1.setUniformScale(0.2);
 
         polygonTrans2.rotation.z = glfwGetTime() * 30.0;
+        polygonTrans2.rotation.y = glfwGetTime() * 45.0;
         polygonTrans2.position.x = 0.8f * cos(glfwGetTime() + 3.14f);
         polygonTrans2.position.y = 0.8f * sin(glfwGetTime() + 3.14f);
-        polygonTrans2.setUniformScale(1.2f);
+        polygonTrans2.setUniformScale(0.2f);
+
+        polygonTrans3.rotation.x = glfwGetTime() * 45.0;
+        polygonTrans3.rotation.y = glfwGetTime() * 45.0;
+        polygonTrans3.setUniformScale(0.2f);
 
         // render
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // draw our first triangle
         polygonShader->use();
@@ -179,7 +201,7 @@ int main()
         polygonShader->setMatrix4f("model", model);
 
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
         // 2
         model = glm::mat4(1.0f);
@@ -192,7 +214,7 @@ int main()
         polygonShader->setMatrix4f("model", model);
 
         //glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
         // 3
         model = glm::mat4(1.0f);
@@ -205,7 +227,7 @@ int main()
         polygonShader->setMatrix4f("model", model);
 
         //glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
         /* see info about Double Buffer concept */
         glfwSwapBuffers(window);
