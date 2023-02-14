@@ -4,9 +4,11 @@ layout (location = 1) in vec3 inColor;
 out vec3 fragColor;
 
 uniform mat4 model;
+uniform mat4 camera;
+uniform mat4 projection;
 
 void main()
 {
-   gl_Position = model * vec4(aPos, 1.0);
+   gl_Position = projection * camera * model * vec4(aPos, 1.0);
    fragColor = inColor;
 };

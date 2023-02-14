@@ -12,6 +12,8 @@
 #include <iostream>
 #include "Shader.h"
 
+float cam_dist = 5.0f;
+
 struct ModelTransform
 {
     glm::vec3 position;
@@ -35,6 +37,10 @@ void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+    if (glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
+        cam_dist += 0.01f;
+    if (glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS)
+        cam_dist -= 0.01f;
 }
 
 int main()
@@ -169,14 +175,14 @@ int main()
 
         polygonTrans1.rotation.z = glfwGetTime() * 60.0;
         polygonTrans1.rotation.x = glfwGetTime() * 45.0;
-        polygonTrans1.position.x = 0.8f * cos(glfwGetTime());
-        polygonTrans1.position.y = 0.8f * sin(glfwGetTime());
+        polygonTrans1.position.x = 3.0f * cos(glfwGetTime());
+        polygonTrans1.position.y = 3.0f * sin(glfwGetTime());
         polygonTrans1.setUniformScale(0.2);
 
         polygonTrans2.rotation.z = glfwGetTime() * 30.0;
         polygonTrans2.rotation.y = glfwGetTime() * 45.0;
-        polygonTrans2.position.x = 0.8f * cos(glfwGetTime() + 3.14f);
-        polygonTrans2.position.y = 0.8f * sin(glfwGetTime() + 3.14f);
+        polygonTrans2.position.x = 3.0f * cos(glfwGetTime() + 3.14f);
+        polygonTrans2.position.y = 3.0f * sin(glfwGetTime() + 3.14f);
         polygonTrans2.setUniformScale(0.2f);
 
         polygonTrans3.rotation.x = glfwGetTime() * 45.0;
@@ -190,6 +196,14 @@ int main()
         // draw our first triangle
         polygonShader->use();
 
+        glm::vec3 pos_vec = glm::vec3(cam_dist * cos(glfwGetTime() * 0.3), 0.f, cam_dist * sin(glfwGetTime() * 0.3));
+        glm::vec3 target_vec = glm::vec3(0.f, 0.f, 0.f);
+        glm::vec3 up_vec = glm::vec3(0.f, 1.f, 0.f);
+
+        glm::mat4 camera = glm::lookAt(pos_vec, target_vec, up_vec);
+        //glm::mat4 projection = glm::ortho(-1.f, 1.f, -1.f, 1.f, 0.1f, 100.f);
+        glm::mat4 projection = glm::perspective(45.f, 1.0f, 0.01f, 100.f);
+
         // 1
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, polygonTrans1.position);
@@ -199,6 +213,8 @@ int main()
         model = glm::scale(model, polygonTrans1.scale);
 
         polygonShader->setMatrix4f("model", model);
+        polygonShader->setMatrix4f("camera", camera);
+        polygonShader->setMatrix4f("projection", projection);
 
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
@@ -212,6 +228,8 @@ int main()
         model = glm::scale(model, polygonTrans2.scale);
 
         polygonShader->setMatrix4f("model", model);
+        polygonShader->setMatrix4f("camera", camera);
+        polygonShader->setMatrix4f("projection", projection);
 
         //glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
@@ -225,6 +243,8 @@ int main()
         model = glm::scale(model, polygonTrans3.scale);
 
         polygonShader->setMatrix4f("model", model);
+        polygonShader->setMatrix4f("camera", camera);
+        polygonShader->setMatrix4f("projection", projection);
 
         //glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
