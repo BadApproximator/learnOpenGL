@@ -9,6 +9,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 #include <iostream>
 #include "Shader.h"
 
@@ -43,6 +45,8 @@ void processInput(GLFWwindow* window)
         cam_dist -= 0.01f;
 }
 
+typedef unsigned char byte;
+
 int main()
 {
 #pragma region WINDOW INITIALIZATION
@@ -76,18 +80,21 @@ int main()
     glEnable(GL_DEPTH_TEST); // проверка глубины
 #pragma endregion
 
+    int box_width, box_height, channels;
+    byte* data = stbi_load("images/box.png", &box_width, &box_height, &channels, 0);
+
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     const int verts = 8;
-    GLfloat cube[verts * (3 + 3)] = {
-         -1.0f,  1.0f,   -1.0f,     1.0f, 0.0f, 0.0f,
-         1.0f,   1.0f,   -1.0f,     0.5f, 0.5f, 0.0f,
-         1.0f,   1.0f,   1.0f,     0.0f, 1.0f, 0.0f,
-         -1.0f,  1.0f,   1.0f,     0.0f, 0.5f, 0.5f,
-         -1.0f,  -1.0f,  -1.0f,     0.0f, 0.0f, 1.0f,
-         1.0f,   -1.0f,  -1.0f,     0.5f, 0.0f, 0.5f,
-         1.0f,   -1.0f,  1.0f,     0.5f, 0.5f, 0.5f,
-         -1.0f,  -1.0f,  1.0f,     1.0f, 1.0f, 1.0f,
+    GLfloat cube[verts * (3 + 3 + 2)] = {
+         -1.0f,  1.0f,   -1.0f,    1.0f, 0.0f, 0.0f,    0.f, 1.f,
+         1.0f,   1.0f,   -1.0f,    0.5f, 0.5f, 0.0f,    1.f, 1.f,
+         1.0f,   1.0f,   1.0f,     0.0f, 1.0f, 0.0f,    1.f, 0.f,
+         -1.0f,  1.0f,   1.0f,     0.0f, 0.5f, 0.5f,    0.f, 0.f,
+         -1.0f,  -1.0f,  -1.0f,    0.0f, 0.0f, 1.0f,    1.f, 0.f,
+         1.0f,   -1.0f,  -1.0f,    0.5f, 0.0f, 0.5f,    0.f, 0.f,
+         1.0f,   -1.0f,  1.0f,     0.5f, 0.5f, 0.5f,    0.f, 1.f,
+         -1.0f,  -1.0f,  1.0f,     1.0f, 1.0f, 1.0f,    1.f, 1.f,
     };
     GLuint indices[] = {
         0, 1, 3,
@@ -122,6 +129,23 @@ int main()
     };
 
 #pragma region BUFFERS INITIALIZATION
+
+    unsigned int box_texture;
+    glGenTextures(1, &box_texture);
+    glBindTexture(GL_TEXTURE_2D, box_texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    if (channels == 3)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, box_width, box_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    else
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, box_width, box_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    //glGenerateMipmap(GL_TEXTURE_2D);
+    stbi_image_free(data);
+
     /* Vertex Buffer Object */
     /* Vertex Array Object */
     /* Element Buffer Object */
@@ -135,7 +159,7 @@ int main()
     */ 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * verts * (3+3), cube, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * verts * (3+3+2), cube, GL_STATIC_DRAW);
     // GL_STATIC_DRAW
     // GL_STREAM_DRAW (very rare)
     // GL_DYNAMIC_DRAW
@@ -143,11 +167,14 @@ int main()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * 36, indices, GL_STATIC_DRAW);
 
     // position attribute   
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     // color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    // texture coords
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -163,9 +190,6 @@ int main()
 
     // Для режима wireframe (только ребра)
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    
-    polygonTrans1.position.x = 0.5f;
-    polygonTrans1.setUniformScale(0.5f);
 
     /* simple render loop */
     while (!glfwWindowShouldClose(window))
@@ -212,10 +236,10 @@ int main()
         model = glm::rotate(model, glm::radians(polygonTrans1.rotation.z), glm::vec3(0.f, 0.f, 1.f));
         model = glm::scale(model, polygonTrans1.scale);
 
-        polygonShader->setMatrix4f("model", model);
-        polygonShader->setMatrix4f("camera", camera);
-        polygonShader->setMatrix4f("projection", projection);
+        glm::mat4 pvm = projection * camera * model; // projection-view-matrix
+        polygonShader->setMatrix4f("pvm", pvm);
 
+        glBindTexture(GL_TEXTURE_2D, box_texture);
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
@@ -227,9 +251,8 @@ int main()
         model = glm::rotate(model, glm::radians(polygonTrans2.rotation.z), glm::vec3(0.f, 0.f, 1.f));
         model = glm::scale(model, polygonTrans2.scale);
 
-        polygonShader->setMatrix4f("model", model);
-        polygonShader->setMatrix4f("camera", camera);
-        polygonShader->setMatrix4f("projection", projection);
+        pvm = projection * camera * model; // projection-view-matrix
+        polygonShader->setMatrix4f("pvm", pvm);
 
         //glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
@@ -242,9 +265,8 @@ int main()
         model = glm::rotate(model, glm::radians(polygonTrans3.rotation.z), glm::vec3(0.f, 0.f, 1.f));
         model = glm::scale(model, polygonTrans3.scale);
 
-        polygonShader->setMatrix4f("model", model);
-        polygonShader->setMatrix4f("camera", camera);
-        polygonShader->setMatrix4f("projection", projection);
+        pvm = projection * camera * model; // projection-view-matrix
+        polygonShader->setMatrix4f("pvm", pvm);
 
         //glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
