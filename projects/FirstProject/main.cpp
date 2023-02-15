@@ -13,8 +13,10 @@
 #include "stb_image.h"
 #include <iostream>
 #include "Shader.h"
+#include "camera.h"
 
-float cam_dist = 5.0f;
+Camera camera(glm::vec3(0.f, 0.f, -5.f));
+
 
 struct ModelTransform
 {
@@ -35,14 +37,35 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow* window)
+void processInput(GLFWwindow* window, double dt)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    // move camera by keyboard
+    int32_t dir = 0;
     if (glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
-        cam_dist += 0.01f;
+        dir |= CAM_UP;
     if (glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS)
-        cam_dist -= 0.01f;
+        dir |= CAM_DOWN;
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        dir |= CAM_FORWARD;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        dir |= CAM_BACKWARD;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        dir |= CAM_LEFT;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        dir |= CAM_RIGHT;
+    camera.Move(dir, dt);
+
+    // move camera by mouse
+    double newX = 0.f, newY = 0.f;
+    glfwGetCursorPos(window, &newX, &newY);
+    static double x = newX, y = newY;
+    double xOffset = newX - x;
+    double yOffset = newY - y;
+    x = newX, y = newY;
+    camera.Rotate(xOffset, -yOffset);
 }
 
 typedef unsigned char byte;
@@ -58,7 +81,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* create window */
-    GLFWwindow* window = glfwCreateWindow(800, 800, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -78,6 +101,7 @@ int main()
     }
 
     glEnable(GL_DEPTH_TEST); // проверка глубины
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 #pragma endregion
 
     int box_width, box_height, channels;
@@ -191,11 +215,19 @@ int main()
     // Для режима wireframe (только ребра)
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+    glm::mat4 pvm;
+
+    double oldTime = glfwGetTime();
+    double newTime, deltaTime;
     /* simple render loop */
     while (!glfwWindowShouldClose(window))
     {
+        newTime = glfwGetTime();
+        deltaTime = newTime - oldTime;
+        oldTime = newTime;
+
         // Process some keys
-        processInput(window);
+        processInput(window, deltaTime);
 
         polygonTrans1.rotation.z = glfwGetTime() * 60.0;
         polygonTrans1.rotation.x = glfwGetTime() * 45.0;
@@ -219,14 +251,7 @@ int main()
 
         // draw our first triangle
         polygonShader->use();
-
-        glm::vec3 pos_vec = glm::vec3(cam_dist * cos(glfwGetTime() * 0.3), 0.f, cam_dist * sin(glfwGetTime() * 0.3));
-        glm::vec3 target_vec = glm::vec3(0.f, 0.f, 0.f);
-        glm::vec3 up_vec = glm::vec3(0.f, 1.f, 0.f);
-
-        glm::mat4 camera = glm::lookAt(pos_vec, target_vec, up_vec);
-        //glm::mat4 projection = glm::ortho(-1.f, 1.f, -1.f, 1.f, 0.1f, 100.f);
-        glm::mat4 projection = glm::perspective(45.f, 1.0f, 0.01f, 100.f);
+        glm::mat4 pv = camera.GetProjectionMatrix() * camera.GetViewMatrix(); // projection-view-matrix
 
         // 1
         glm::mat4 model = glm::mat4(1.0f);
@@ -236,7 +261,7 @@ int main()
         model = glm::rotate(model, glm::radians(polygonTrans1.rotation.z), glm::vec3(0.f, 0.f, 1.f));
         model = glm::scale(model, polygonTrans1.scale);
 
-        glm::mat4 pvm = projection * camera * model; // projection-view-matrix
+        pvm = pv * model;
         polygonShader->setMatrix4f("pvm", pvm);
 
         glBindTexture(GL_TEXTURE_2D, box_texture);
@@ -251,7 +276,7 @@ int main()
         model = glm::rotate(model, glm::radians(polygonTrans2.rotation.z), glm::vec3(0.f, 0.f, 1.f));
         model = glm::scale(model, polygonTrans2.scale);
 
-        pvm = projection * camera * model; // projection-view-matrix
+        pvm = pv * model;
         polygonShader->setMatrix4f("pvm", pvm);
 
         //glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
@@ -265,7 +290,7 @@ int main()
         model = glm::rotate(model, glm::radians(polygonTrans3.rotation.z), glm::vec3(0.f, 0.f, 1.f));
         model = glm::scale(model, polygonTrans3.scale);
 
-        pvm = projection * camera * model; // projection-view-matrix
+        pvm = pv * model;
         polygonShader->setMatrix4f("pvm", pvm);
 
         //glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
