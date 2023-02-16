@@ -68,6 +68,11 @@ void processInput(GLFWwindow* window, double dt)
     camera.Rotate(xOffset, -yOffset);
 }
 
+void OnScroll(GLFWwindow* win, double x, double y)
+{
+    camera.ChangeFov(y);
+}
+
 typedef unsigned char byte;
 
 int main()
@@ -102,6 +107,7 @@ int main()
 
     glEnable(GL_DEPTH_TEST); // проверка глубины
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetScrollCallback(window, OnScroll);
 #pragma endregion
 
     int box_width, box_height, channels;

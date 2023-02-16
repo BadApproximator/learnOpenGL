@@ -92,7 +92,7 @@ public:
 
     glm::mat4 GetProjectionMatrix()
     {
-        return glm::perspective(Fov, AspectRatio, zNear, zFar);
+        return glm::perspective(glm::radians(Fov), AspectRatio, zNear, zFar);
     }
 
 
