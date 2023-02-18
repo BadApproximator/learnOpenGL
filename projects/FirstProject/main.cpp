@@ -73,6 +73,27 @@ void OnScroll(GLFWwindow* win, double x, double y)
     camera.ChangeFov(y);
 }
 
+bool wireframeMode = false;
+
+void UpdatePolygonMode()
+{
+    if (wireframeMode)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    else
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+void OnKeyAction(GLFWwindow* win, int key, int scancode, int action, int mods)
+{
+    if (action == GLFW_PRESS)
+        switch (key)
+        {
+        case GLFW_KEY_SPACE:
+            wireframeMode = !wireframeMode;
+            UpdatePolygonMode();
+            break;
+        }
+}
+
 typedef unsigned char byte;
 
 int main()
@@ -107,7 +128,13 @@ int main()
 
     glEnable(GL_DEPTH_TEST); // проверка глубины
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    UpdatePolygonMode();
     glfwSetScrollCallback(window, OnScroll);
+    glfwSetKeyCallback(window, OnKeyAction);
+    glEnable(GL_CULL_FACE); // отсечение задних граней (только зад определяется порядком индексации вершин)
+    glFrontFace(GL_CCW); // перед теперь - это грань занумернованная по часовой стрелке
+                        // обычно задают против часовой стрелки
+                        // либо задают нормали
 #pragma endregion
 
     int box_width, box_height, channels;
@@ -115,30 +142,51 @@ int main()
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
-    const int verts = 8;
-    GLfloat cube[verts * (3 + 3 + 2)] = {
-         -1.0f,  1.0f,   -1.0f,    1.0f, 0.0f, 0.0f,    0.f, 1.f,
-         1.0f,   1.0f,   -1.0f,    0.5f, 0.5f, 0.0f,    1.f, 1.f,
-         1.0f,   1.0f,   1.0f,     0.0f, 1.0f, 0.0f,    1.f, 0.f,
-         -1.0f,  1.0f,   1.0f,     0.0f, 0.5f, 0.5f,    0.f, 0.f,
-         -1.0f,  -1.0f,  -1.0f,    0.0f, 0.0f, 1.0f,    1.f, 0.f,
-         1.0f,   -1.0f,  -1.0f,    0.5f, 0.0f, 0.5f,    0.f, 0.f,
-         1.0f,   -1.0f,  1.0f,     0.5f, 0.5f, 0.5f,    0.f, 1.f,
-         -1.0f,  -1.0f,  1.0f,     1.0f, 1.0f, 1.0f,    1.f, 1.f,
-    };
-    GLuint indices[] = {
-        0, 1, 3,
-        1, 2, 3,
-        0, 4, 1,
-        1, 4, 5,
-        0, 3, 7,
-        0, 7, 4,
-        1, 6, 2,
-        1, 5, 6,
-        2, 7, 3,
-        2, 6, 7,
-        4, 7, 5,
-        5, 7, 6,
+
+    const int verts = 36;
+    GLfloat cube[] = {
+            //position			normal					texture				color			
+        -1.0f,-1.0f,-1.0f,	-1.0f,  0.0f,  0.0f,	0.0f, 0.0f,		0.0f, 1.0f, 0.0f,
+        -1.0f,-1.0f, 1.0f,	-1.0f,  0.0f,  0.0f,	1.0f, 0.0f,		0.0f, 1.0f, 0.0f,
+        -1.0f, 1.0f, 1.0f,	-1.0f,  0.0f,  0.0f,	1.0f, 1.0f,		0.0f, 1.0f, 0.0f,
+        -1.0f,-1.0f,-1.0f,	-1.0f,  0.0f,  0.0f,	0.0f, 0.0f,		0.0f, 1.0f, 0.0f,
+        -1.0f, 1.0f, 1.0f,	-1.0f,  0.0f,  0.0f,	1.0f, 1.0f,		0.0f, 1.0f, 0.0f,
+        -1.0f, 1.0f,-1.0f,	-1.0f,  0.0f,  0.0f,	0.0f, 1.0f,		0.0f, 1.0f, 0.0f,
+
+        1.0f, 1.0f,-1.0f,	0.0f,  0.0f, -1.0f, 	0.0f, 1.0f,		1.0f, 0.0f, 0.0f,
+        -1.0f,-1.0f,-1.0f,	0.0f,  0.0f, -1.0f, 	1.0f, 0.0f,		1.0f, 0.0f, 0.0f,
+        -1.0f, 1.0f,-1.0f,	0.0f,  0.0f, -1.0f, 	1.0f, 1.0f,		1.0f, 0.0f, 0.0f,
+        1.0f, 1.0f,-1.0f,	0.0f,  0.0f, -1.0f,		0.0f, 1.0f,		1.0f, 0.0f, 0.0f,
+        1.0f,-1.0f,-1.0f,	0.0f,  0.0f, -1.0f,		0.0f, 0.0f,		1.0f, 0.0f, 0.0f,
+        -1.0f,-1.0f,-1.0f,	0.0f,  0.0f, -1.0f,		1.0f, 0.0f,		1.0f, 0.0f, 0.0f,
+
+        1.0f,-1.0f, 1.0f,	0.0f, -1.0f,  0.0f,		0.0f, 0.0f,		0.0f, 0.0f, 1.0f,
+        -1.0f,-1.0f,-1.0f,	0.0f, -1.0f,  0.0f,		1.0f, 1.0f,		0.0f, 0.0f, 1.0f,
+        1.0f,-1.0f,-1.0f,	0.0f, -1.0f,  0.0f,		0.0f, 1.0f,		0.0f, 0.0f, 1.0f,
+        1.0f,-1.0f, 1.0f,	0.0f, -1.0f,  0.0f,		0.0f, 0.0f,		0.0f, 0.0f, 1.0f,
+        -1.0f,-1.0f, 1.0f,	0.0f, -1.0f,  0.0f,		1.0f, 0.0f,		0.0f, 0.0f, 1.0f,
+        -1.0f,-1.0f,-1.0f,	0.0f, -1.0f,  0.0f,		1.0f, 1.0f,		0.0f, 0.0f, 1.0f,
+
+        -1.0f, 1.0f, 1.0f,	0.0f,  0.0f, 1.0f,		0.0f, 1.0f,		0.0f, 0.0f, 1.0f,
+        -1.0f,-1.0f, 1.0f,	0.0f,  0.0f, 1.0f,		0.0f, 0.0f,		0.0f, 0.0f, 1.0f,
+        1.0f,-1.0f, 1.0f,	0.0f,  0.0f, 1.0f,		1.0f, 0.0f,		0.0f, 0.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,	0.0f,  0.0f, 1.0f,		1.0f, 1.0f,		0.0f, 0.0f, 1.0f,
+        -1.0f, 1.0f, 1.0f,	0.0f,  0.0f, 1.0f,		0.0f, 1.0f,		0.0f, 0.0f, 1.0f,
+        1.0f,-1.0f, 1.0f,	0.0f,  0.0f, 1.0f,		1.0f, 0.0f,		0.0f, 0.0f, 1.0f,
+
+        1.0f, 1.0f, 1.0f,	1.0f,  0.0f,  0.0f,		0.0f, 1.0f,		1.0f, 0.0f, 0.0f,
+        1.0f,-1.0f,-1.0f,	1.0f,  0.0f,  0.0f,		1.0f, 0.0f,		1.0f, 0.0f, 0.0f,
+        1.0f, 1.0f,-1.0f,	1.0f,  0.0f,  0.0f,		1.0f, 1.0f,		1.0f, 0.0f, 0.0f,
+        1.0f,-1.0f,-1.0f,	1.0f,  0.0f,  0.0f,		1.0f, 0.0f,		1.0f, 0.0f, 0.0f,
+        1.0f, 1.0f, 1.0f,	1.0f,  0.0f,  0.0f,		0.0f, 1.0f,		1.0f, 0.0f, 0.0f,
+        1.0f,-1.0f, 1.0f,	1.0f,  0.0f,  0.0f,		0.0f, 0.0f,		1.0f, 0.0f, 0.0f,
+
+        1.0f, 1.0f, 1.0f,	0.0f,  1.0f,  0.0f,		1.0f, 0.0f,		0.0f, 1.0f, 0.0f,
+        1.0f, 1.0f,-1.0f,	0.0f,  1.0f,  0.0f,		1.0f, 1.0f,		0.0f, 1.0f, 0.0f,
+        -1.0f, 1.0f,-1.0f,	0.0f,  1.0f,  0.0f,		0.0f, 1.0f,		0.0f, 1.0f, 0.0f,
+        1.0f, 1.0f, 1.0f,	0.0f,  1.0f,  0.0f,		1.0f, 0.0f,		0.0f, 1.0f, 0.0f,
+        -1.0f, 1.0f,-1.0f,	0.0f,  1.0f,  0.0f,		0.0f, 1.0f,		0.0f, 1.0f, 0.0f,
+        -1.0f, 1.0f, 1.0f,	0.0f,  1.0f,  0.0f,		0.0f, 0.0f,		0.0f, 1.0f, 0.0f
     };
 
     ModelTransform polygonTrans1 = {
@@ -179,32 +227,25 @@ int main()
     /* Vertex Buffer Object */
     /* Vertex Array Object */
     /* Element Buffer Object */
-    GLuint VBO, VAO, EBO;
+    GLuint VBO, VAO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    /* bind the Vertex Array Object first,
-       then bind and set vertex buffer(s),
-       and then configure vertex attributes(s).
-    */ 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * verts * (3+3+2), cube, GL_STATIC_DRAW);
-    // GL_STATIC_DRAW
-    // GL_STREAM_DRAW (very rare)
-    // GL_DYNAMIC_DRAW
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * 36, indices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cube), cube, GL_STATIC_DRAW);
 
     // position attribute   
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    // color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    // normal attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
     // texture coords
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
+    // color attribute
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(3);
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -269,10 +310,12 @@ int main()
 
         pvm = pv * model;
         polygonShader->setMatrix4f("pvm", pvm);
+        polygonShader->setBool("wireframeMode", wireframeMode);
 
         glBindTexture(GL_TEXTURE_2D, box_texture);
+        //glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_TRIANGLES, 0, verts);
 
         // 2
         model = glm::mat4(1.0f);
@@ -284,9 +327,11 @@ int main()
 
         pvm = pv * model;
         polygonShader->setMatrix4f("pvm", pvm);
+        polygonShader->setBool("wireframeMode", wireframeMode);
 
-        //glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        //glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+        glDrawArrays(GL_TRIANGLES, 0, verts);
 
         // 3
         model = glm::mat4(1.0f);
@@ -298,9 +343,11 @@ int main()
 
         pvm = pv * model;
         polygonShader->setMatrix4f("pvm", pvm);
+        polygonShader->setBool("wireframeMode", wireframeMode);
 
-        //glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        //glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+        glDrawArrays(GL_TRIANGLES, 0, verts);
 
         /* see info about Double Buffer concept */
         glfwSwapBuffers(window);
