@@ -266,6 +266,9 @@ int main()
 
     double oldTime = glfwGetTime();
     double newTime, deltaTime;
+
+    glm::vec3 lightPos = glm::vec3(5.0f, 0.0f, 0.0f);
+    glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     /* simple render loop */
     while (!glfwWindowShouldClose(window))
     {
@@ -308,9 +311,11 @@ int main()
         model = glm::rotate(model, glm::radians(polygonTrans1.rotation.z), glm::vec3(0.f, 0.f, 1.f));
         model = glm::scale(model, polygonTrans1.scale);
 
-        pvm = pv * model;
-        polygonShader->setMatrix4f("pvm", pvm);
+        polygonShader->setMatrix4f("pv", pv);
+        polygonShader->setMatrix4f("model", model);
         polygonShader->setBool("wireframeMode", wireframeMode);
+        polygonShader->setVec3("lightPos", lightPos);
+        polygonShader->setVec3("lightColor", lightColor);
 
         glBindTexture(GL_TEXTURE_2D, box_texture);
         //glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
@@ -325,9 +330,11 @@ int main()
         model = glm::rotate(model, glm::radians(polygonTrans2.rotation.z), glm::vec3(0.f, 0.f, 1.f));
         model = glm::scale(model, polygonTrans2.scale);
 
-        pvm = pv * model;
-        polygonShader->setMatrix4f("pvm", pvm);
+        polygonShader->setMatrix4f("pv", pv);
+        polygonShader->setMatrix4f("model", model);
         polygonShader->setBool("wireframeMode", wireframeMode);
+        polygonShader->setVec3("lightPos", lightPos);
+        polygonShader->setVec3("lightColor", lightColor);
 
         //glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
@@ -341,9 +348,11 @@ int main()
         model = glm::rotate(model, glm::radians(polygonTrans3.rotation.z), glm::vec3(0.f, 0.f, 1.f));
         model = glm::scale(model, polygonTrans3.scale);
 
-        pvm = pv * model;
-        polygonShader->setMatrix4f("pvm", pvm);
+        polygonShader->setMatrix4f("pv", pv);
+        polygonShader->setMatrix4f("model", model);
         polygonShader->setBool("wireframeMode", wireframeMode);
+        polygonShader->setVec3("lightPos", lightPos);
+        polygonShader->setVec3("lightColor", lightColor);
 
         //glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized

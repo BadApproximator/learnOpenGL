@@ -122,3 +122,11 @@ void Shader::setMatrix4f(const std::string& name, glm::mat4& m) const
 	unsigned int transformLoc = glGetUniformLocation(ID, name.c_str());
 	glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(m));
 }
+void Shader::setVec3(const std::string& name, glm::vec3& vec) const
+{
+	glUniform3f(glGetUniformLocation(ID, name.c_str()), vec[0], vec[1], vec[2]);
+}
+void Shader::setVec4(const std::string& name, glm::vec4& vec) const
+{
+	glUniform4f(glGetUniformLocation(ID, name.c_str()), vec[0], vec[1], vec[2], vec[3]);
+}
